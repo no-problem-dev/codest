@@ -4,7 +4,7 @@
 set -e
 
 # バージョン設定
-VERSION="0.1.1"
+VERSION="0.1.2"
 IDENTIFIER="dev.noproblem.codest"
 
 echo "🚀 Starting build process for Codest ${VERSION}..."
