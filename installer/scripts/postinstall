@@ -1,0 +1,15 @@
+#!/bin/bash
+echo "Completing installation..."
+
+# 実行権限の設定
+chmod +x /usr/local/bin/codest
+
+# パスを通す
+if [ -f ~/.zshrc ]; then
+    echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc
+fi
+if [ -f ~/.bashrc ]; then
+    echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+fi
+
+echo "Installation completed successfully!"

@@ -1,0 +1,4 @@
+#!/bin/bash
+SCRIPT_DIR="/usr/local/lib/codest"
+export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH}"
+python3 -m codest "$@"
