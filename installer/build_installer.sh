@@ -1,14 +1,20 @@
 #!/bin/bash
 
+# エラー時に停止
+set -e
+
 # バージョン設定
-VERSION="0.1.0"
+VERSION="0.1.1"
 IDENTIFIER="dev.noproblem.codest"
+
+echo "🚀 Starting build process for Codest ${VERSION}..."
 
 # ビルドディレクトリの作成
 rm -rf build
 mkdir -p build
 
 # Pythonスクリプトとライブラリをパッケージディレクトリにコピー
+echo "📦 Preparing package contents..."
 mkdir -p package/usr/local/lib/codest
 
 # ソースコードをコピー
@@ -27,6 +33,7 @@ chmod +x package/usr/local/bin/codest
 # スクリプトに実行権限を付与
 chmod +x scripts/*
 
+echo "📝 Creating component package..."
 # コンポーネントパッケージの作成と署名
 pkgbuild \
     --root package \
@@ -34,7 +41,7 @@ pkgbuild \
     --identifier "$IDENTIFIER" \
     --version "$VERSION" \
     --install-location "/" \
-    --sign "Developer ID Installer: Y8MG29W5VM" \
+    --sign "Developer ID Installer: Kyoichi Taniguchi (Y8MG29W5VM)" \
     build/codest-component.pkg
 
 # Distribution XMLの作成
@@ -57,6 +64,7 @@ cat > build/distribution.xml << XMLEOF
 </installer-script>
 XMLEOF
 
+echo "📄 Creating installer resources..."
 # インストーラーリソースの作成
 mkdir -p build/Resources
 cat > build/Resources/welcome.txt << WELCOMEOF
@@ -82,24 +90,27 @@ You can now use the 'codest' command in your terminal.
 Open a new terminal window to start using it.
 CONCLUSIONEOF
 
-cp ../../LICENSE build/Resources/license.txt
+# LICENSEファイルのコピー
+cp ../LICENSE build/Resources/license.txt || echo "MIT License" > build/Resources/license.txt
 
+echo "📦 Creating final installer package..."
 # 最終的なインストーラーの作成と署名
 productbuild \
     --distribution build/distribution.xml \
     --resources build/Resources \
     --package-path build \
     --version "$VERSION" \
-    --sign "Developer ID Installer: Y8MG29W5VM" \
+    --sign "Developer ID Installer: Kyoichi Taniguchi (Y8MG29W5VM)" \
     "build/codest-${VERSION}.pkg"
 
+echo "🔒 Submitting package for notarization..."
 # パッケージの公証
-echo "Submitting package for notarization..."
-xcrun notarytool submit build/codest-${VERSION}.pkg \
-    --keychain-profile "AC_PASSWORD" \
+xcrun notarytool submit "build/codest-${VERSION}.pkg" \
+    --keychain-profile "CODEST_NOTARY" \
     --wait
 
+echo "📍 Stapling notarization ticket..."
 # 公証情報の添付
 xcrun stapler staple "build/codest-${VERSION}.pkg"
 
-echo "✨ Signed and notarized installer package created at build/codest-${VERSION}.pkg"
+echo "✨ Build complete! Signed and notarized installer package created at build/codest-${VERSION}.pkg"
