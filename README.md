@@ -1,47 +1,39 @@
 # Codest
 
-A simple and efficient tool to collect source code files into a single document.
+プロジェクトのソースコードを1つのドキュメントにまとめるツール。
 
-## Installation
+## インストール方法
+
+1. [Releases](https://github.com/no-problem-dev/codest/releases) から最新の`codest-x.x.x.pkg`をダウンロード
+2. ダウンロードしたpkgファイルをダブルクリック
+3. インストーラーの指示に従ってインストール
+4. ターミナルを再起動
+
+## 使い方
 
 ```bash
-# Install from PyPI
-pip install codest
+# カレントディレクトリのコードをまとめる
+codest .
 
-# Install from GitHub
-pip install git+https://github.com/yourusername/codest.git
+# 出力ファイルを指定
+codest . -o output.txt
+
+# 最大ファイルサイズを指定（KB単位）
+codest . --max-size 2000
 ```
 
-## Usage
+## 特徴
 
-After installation, you can use the tool in two ways:
+- 指定したディレクトリ以下のソースコードを収集
+- .gitignoreの設定を考慮
+- 多様なプログラミング言語に対応
+- マークダウン形式で出力
+- 大きすぎるファイルを自動でスキップ
 
-1. Command line interface:
-```bash
-codest .                        # Collect files from current directory
-codest /path/to/directory -o output.txt  # Specify output file
-codest . --max-size 2000       # Set maximum file size (KB)
-```
+## サポート
 
-2. Python API:
-```python
-from codest import create_source_document
+問題や提案がある場合は[Issues](https://github.com/no-problem-dev/codest/issues)にお願いします。
 
-create_source_document(
-    root_dir=".",
-    output_file="output.txt",
-    max_file_size_kb=1000
-)
-```
-
-## Features
-
-- Collects source code files from a directory and its subdirectories
-- Respects .gitignore patterns
-- Configurable file size limits
-- Supports various programming languages
-- Generates a single markdown document with syntax highlighting
-
-## License
+## ライセンス
 
 MIT License
