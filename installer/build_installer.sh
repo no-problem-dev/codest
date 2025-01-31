@@ -27,13 +27,14 @@ chmod +x package/usr/local/bin/codest
 # スクリプトに実行権限を付与
 chmod +x scripts/*
 
-# パッケージの作成
+# コンポーネントパッケージの作成と署名
 pkgbuild \
     --root package \
     --scripts scripts \
     --identifier "$IDENTIFIER" \
     --version "$VERSION" \
     --install-location "/" \
+    --sign "Developer ID Installer: Y8MG29W5VM" \
     build/codest-component.pkg
 
 # Distribution XMLの作成
@@ -83,12 +84,22 @@ CONCLUSIONEOF
 
 cp ../../LICENSE build/Resources/license.txt
 
-# 最終的なインストーラーの作成
+# 最終的なインストーラーの作成と署名
 productbuild \
     --distribution build/distribution.xml \
     --resources build/Resources \
     --package-path build \
     --version "$VERSION" \
+    --sign "Developer ID Installer: Y8MG29W5VM" \
     "build/codest-${VERSION}.pkg"
 
-echo "✨ Installer package created at build/codest-${VERSION}.pkg"
+# パッケージの公証
+echo "Submitting package for notarization..."
+xcrun notarytool submit build/codest-${VERSION}.pkg \
+    --keychain-profile "AC_PASSWORD" \
+    --wait
+
+# 公証情報の添付
+xcrun stapler staple "build/codest-${VERSION}.pkg"
+
+echo "✨ Signed and notarized installer package created at build/codest-${VERSION}.pkg"
