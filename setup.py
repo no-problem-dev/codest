@@ -11,7 +11,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'codest=codest.cli:main',
+            'codest=codest.__main__:run',
         ],
     },
 )

@@ -9,6 +9,7 @@ create_install_scripts() {
     # preinstallスクリプトの作成
     cat > "$scripts_dir/preinstall" << 'EOF'
 #!/bin/bash
+echo "Cleaning up old installation..."
 # 古いバージョンの削除
 rm -rf /usr/local/lib/codest
 rm -f /usr/local/bin/codest
@@ -17,9 +18,18 @@ EOF
     # postinstallスクリプトの作成
     cat > "$scripts_dir/postinstall" << 'EOF'
 #!/bin/bash
+echo "Starting installation..."
+
+# 必要なライブラリのインストール
+echo "Installing required packages..."
+/usr/local/bin/pip3 install -q pyperclip>=1.8.0
+
 # 権限の設定
+echo "Setting permissions..."
 chmod 755 /usr/local/bin/codest
 chmod -R 755 /usr/local/lib/codest
+
+echo "Installation completed successfully!"
 EOF
 
     # スクリプトに実行権限を付与

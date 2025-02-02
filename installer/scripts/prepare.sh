@@ -28,7 +28,7 @@ prepare_build_directory() {
     cat > "$bin_dir/codest" << 'EOF'
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHONPATH="/usr/local/lib/codest" exec python3 -m codest "$@"
+PYTHONPATH="/usr/local/lib" exec python3 -m codest "$@"
 EOF
 
     # 実行権限を設定

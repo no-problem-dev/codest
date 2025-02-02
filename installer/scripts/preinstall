@@ -1,21 +1,22 @@
 #!/bin/bash
 
-echo "インストール前の処理を開始します..."
+# ログファイルの設定
+exec 1> >(tee -a "/tmp/codest_install_pre.log") 2>&1
 
-# 古いバージョンが存在する場合は削除
+echo "Starting preinstall script at $(date)"
+echo "Current directory: $(pwd)"
+echo "Script directory: $(dirname $0)"
+echo "User: $(whoami)"
+
+# 既存のインストールをクリーンアップ
 if [ -d "/usr/local/lib/codest" ]; then
-    echo "既存のインストールを削除しています..."
-    rm -rf /usr/local/lib/codest
+    echo "Removing existing installation..."
+    rm -rf "/usr/local/lib/codest"
 fi
 
 if [ -f "/usr/local/bin/codest" ]; then
-    echo "既存の実行ファイルを削除しています..."
-    rm -f /usr/local/bin/codest
+    echo "Removing existing executable..."
+    rm -f "/usr/local/bin/codest"
 fi
 
-# インストールディレクトリの作成
-echo "インストールディレクトリを準備しています..."
-mkdir -p /usr/local/lib/codest
-mkdir -p /usr/local/bin
-
-exit 0
+echo "Preinstall completed at $(date)"

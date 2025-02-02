@@ -1,38 +1,57 @@
 #!/bin/bash
 
-echo "インストール後の処理を開始します..."
+# ログファイルの設定
+exec 1> >(tee -a "/tmp/codest_install_post.log") 2>&1
 
-# 権限の設定
-echo "権限を設定しています..."
-chmod 755 /usr/local/bin/codest
-chmod -R 755 /usr/local/lib/codest
+echo "Starting postinstall script at $(date)"
+echo "Current directory: $(pwd)"
+echo "Script directory: $(dirname $0)"
+echo "User: $(whoami)"
 
-# シンボリックリンクの作成
-echo "シンボリックリンクを作成しています..."
-if [ -f "/usr/local/lib/codest/bin/codest" ]; then
-    ln -sf /usr/local/lib/codest/bin/codest /usr/local/bin/codest
-fi
+# インストールディレクトリの作成
+echo "Creating installation directory..."
+mkdir -p /usr/local/lib/codest
 
-# PYTHONPATHの設定
-BASHRC="$HOME/.bashrc"
-ZSHRC="$HOME/.zshrc"
-PYTHONPATH_LINE='export PYTHONPATH="/usr/local/lib/codest:$PYTHONPATH"'
+# ソースファイルのコピー
+echo "Copying source files..."
+cp -rv src/codest/* /usr/local/lib/codest/
 
-# .bashrcに追加
-if [ -f "$BASHRC" ]; then
-    if ! grep -q "PYTHONPATH.*codest" "$BASHRC"; then
-        echo "PYTHONPATHを.bashrcに追加しています..."
-        echo "$PYTHONPATH_LINE" >> "$BASHRC"
+# 依存パッケージのインストール
+echo "Installing dependencies..."
+/usr/local/bin/pip3 install -v pyperclip>=1.8.0
+
+# 実行スクリプトの作成
+echo "Creating executable..."
+cat > /usr/local/bin/codest << 'EOF'
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHONPATH="/usr/local/lib" exec python3 -m codest "$@"
+EOF
+
+# 実行権限の設定
+echo "Setting permissions..."
+chmod +x /usr/local/bin/codest
+
+# パスを通す
+if [ -f ~/.zshrc ]; then
+    if ! grep -q '/usr/local/bin' ~/.zshrc; then
+        echo "Adding path to .zshrc..."
+        echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.zshrc
     fi
 fi
 
-# .zshrcに追加
-if [ -f "$ZSHRC" ]; then
-    if ! grep -q "PYTHONPATH.*codest" "$ZSHRC"; then
-        echo "PYTHONPATHを.zshrcに追加しています..."
-        echo "$PYTHONPATH_LINE" >> "$ZSHRC"
+if [ -f ~/.bashrc ]; then
+    if ! grep -q '/usr/local/bin' ~/.bashrc; then
+        echo "Adding path to .bashrc..."
+        echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
     fi
 fi
 
-echo "インストール後の処理が完了しました"
-exit 0
+# インストール結果の確認
+echo "Verifying installation..."
+echo "Contents of /usr/local/lib/codest:"
+ls -la /usr/local/lib/codest
+echo "Contents of /usr/local/bin/codest:"
+cat /usr/local/bin/codest
+
+echo "Postinstall completed at $(date)"

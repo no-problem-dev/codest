@@ -1,5 +1,8 @@
 import sys
 from codest.cli import main
 
-if __name__ == '__main__':
+def run():
     sys.exit(main())
+
+if __name__ == '__main__':
+    run()
