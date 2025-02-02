@@ -21,7 +21,7 @@ wheels/
 *.egg
 
 # Virtual Environment
-.env
+installer/scripts/.env
 .venv
 env/
 venv/
@@ -50,6 +50,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+test_output.txt
 
 # Documentation
 docs/_build/

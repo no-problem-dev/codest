@@ -1,116 +1,158 @@
 #!/bin/bash
 
-# エラー時に停止
-set -e
+#
+# Codestインストーラービルドスクリプト
+#
 
-# バージョン設定
-VERSION="0.1.2"
-IDENTIFIER="dev.noproblem.codest"
+set -e  # エラー時に実行を停止
 
-echo "🚀 Starting build process for Codest ${VERSION}..."
+# スクリプトのディレクトリに移動
+cd "$(dirname "$0")"
 
-# ビルドディレクトリの作成
-rm -rf build
-mkdir -p build
+# 各スクリプトを読み込み
+source ./scripts/env.sh
+source ./scripts/version.sh
+source ./scripts/validation.sh
+source ./scripts/prepare.sh
+source ./scripts/package.sh
+source ./scripts/cleanup.sh
+source ./scripts/notarization.sh
 
-# Pythonスクリプトとライブラリをパッケージディレクトリにコピー
-echo "📦 Preparing package contents..."
-mkdir -p package/usr/local/lib/codest
+# ヘルプメッセージの表示
+show_help() {
+    cat << EOF
+使用方法: ./build_installer.sh [オプション]
 
-# ソースコードをコピー
-cp -R ../src/codest package/usr/local/lib/codest/
+オプション:
+    -h, --help              このヘルプメッセージを表示
+    -v, --version           バージョン情報を表示
+    -d, --debug            デバッグモードで実行
+    -p, --production       本番モードで実行（署名と公証を含む）
 
-# 実行スクリプトの作成
-cat > package/usr/local/bin/codest << 'INNERSCRIPT'
-#!/bin/bash
-SCRIPT_DIR="/usr/local/lib/codest"
-export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH}"
-python3 -m codest "$@"
-INNERSCRIPT
+デフォルトでは開発モードで実行され、署名と公証はスキップされます。
+本番用のビルドを行う場合は --production オプションを使用してください。
+EOF
+}
 
-chmod +x package/usr/local/bin/codest
+# バージョン情報の表示
+show_version() {
+    local version
+    version=$(get_version)
+    echo "Codest Installer Builder v${version}"
+}
 
-# スクリプトに実行権限を付与
-chmod +x scripts/*
+# コマンドライン引数の解析
+parse_arguments() {
+    PRODUCTION_MODE=false
+    DEBUG_MODE=false
 
-echo "📝 Creating component package..."
-# コンポーネントパッケージの作成と署名
-pkgbuild \
-    --root package \
-    --scripts scripts \
-    --identifier "$IDENTIFIER" \
-    --version "$VERSION" \
-    --install-location "/" \
-    --sign "Developer ID Installer: Kyoichi Taniguchi (Y8MG29W5VM)" \
-    build/codest-component.pkg
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            -h|--help) show_help; exit 0 ;;
+            -v|--version) show_version; exit 0 ;;
+            -p|--production) PRODUCTION_MODE=true ;;
+            -d|--debug) DEBUG_MODE=true; set -x ;;
+            *) echo "不明なオプション: $1"; show_help; exit 1 ;;
+        esac
+        shift
+    done
+}
 
-# Distribution XMLの作成
-cat > build/distribution.xml << XMLEOF
-<?xml version="1.0" encoding="utf-8"?>
-<installer-script minSpecVersion="1.000000">
-    <title>Codest ${VERSION}</title>
-    <welcome file="welcome.txt"/>
-    <readme file="readme.txt"/>
-    <license file="license.txt"/>
-    <conclusion file="conclusion.txt"/>
-    <options customize="never" rootVolumeOnly="true"/>
-    <choices-outline>
-        <line choice="default"/>
-    </choices-outline>
-    <choice id="default" title="Codest">
-        <pkg-ref id="${IDENTIFIER}"/>
-    </choice>
-    <pkg-ref id="${IDENTIFIER}" version="${VERSION}" auth="root">codest-component.pkg</pkg-ref>
-</installer-script>
-XMLEOF
+# 一時ディレクトリの作成
+setup_temp_directory() {
+    TEMP_DIR=$(mktemp -d)
+    trap 'rm -rf "$TEMP_DIR"' EXIT
+    echo "一時ディレクトリを作成しました: $TEMP_DIR"
+}
 
-echo "📄 Creating installer resources..."
-# インストーラーリソースの作成
-mkdir -p build/Resources
-cat > build/Resources/welcome.txt << WELCOMEOF
-Welcome to the Codest installer.
+# メイン処理
+main() {
+    local start_time
+    start_time=$(date +%s)
 
-This will install Codest ${VERSION} on your computer.
-WELCOMEOF
+    echo "インストーラービルドを開始します..."
 
-cat > build/Resources/readme.txt << READMEOF
-Codest is a tool to collect source code files into a single document.
+    # コマンドライン引数の解析
+    parse_arguments "$@"
 
-This tool helps you:
-- Collect all source files from a directory
-- Generate a single markdown document
-- Respect .gitignore patterns
-- Handle various programming languages
-READMEOF
+    # 本番モードの場合は環境変数をロード
+    if [ "$PRODUCTION_MODE" = true ]; then
+        echo "本番モードでビルドを実行します（署名と公証を含む）"
+        # ここで load_env を呼び出し
+        if ! load_env; then
+            echo "環境変数の設定を確認してください"
+            exit 1
+        fi
+    else
+        echo "開発モードでビルドを実行します（署名と公証はスキップ）"
+    fi
 
-cat > build/Resources/conclusion.txt << CONCLUSIONEOF
-Codest has been successfully installed!
+    # 一時ディレクトリのセットアップ
+    setup_temp_directory
 
-You can now use the 'codest' command in your terminal.
-Open a new terminal window to start using it.
-CONCLUSIONEOF
+    # ビルド環境の検証
+    if ! validate_build_environment; then
+        echo "エラー: ビルド環境の検証に失敗しました"
+        exit 1
+    fi
 
-# LICENSEファイルのコピー
-cp ../LICENSE build/Resources/license.txt || echo "MIT License" > build/Resources/license.txt
+    # 本番モードの場合のみ公証環境を検証
+    if [ "$PRODUCTION_MODE" = true ]; then
+        if ! validate_notarization_environment; then
+            echo "エラー: 公証環境の検証に失敗しました"
+            exit 1
+        fi
+    fi
 
-echo "📦 Creating final installer package..."
-# 最終的なインストーラーの作成と署名
-productbuild \
-    --distribution build/distribution.xml \
-    --resources build/Resources \
-    --package-path build \
-    --version "$VERSION" \
-    --sign "Developer ID Installer: Kyoichi Taniguchi (Y8MG29W5VM)" \
-    "build/codest-${VERSION}.pkg"
+    # バージョン番号の取得と表示
+    local version
+    version=$(get_version)
+    echo "ビルドバージョン: $version"
 
-echo "🔒 Submitting package for notarization..."
-# パッケージの公証
-xcrun notarytool submit "build/codest-${VERSION}.pkg" \
-    --keychain-profile "CODEST_NOTARY" \
-    --wait
+    # ビルドディレクトリの準備
+    if ! prepare_build_directory; then
+        echo "エラー: ビルドディレクトリの準備に失敗しました"
+        exit 1
+    fi
 
-echo "📍 Stapling notarization ticket..."
-# 公証情報の添付
-xcrun stapler staple "build/codest-${VERSION}.pkg"
+    # インストーラーパッケージの作成
+    local package_path
+    if ! package_path=$(create_installer_package "$PRODUCTION_MODE"); then
+        echo "エラー: インストーラーパッケージの作成に失敗しました"
+        exit 1
+    fi
 
-echo "✨ Build complete! Signed and notarized installer package created at build/codest-${VERSION}.pkg"
+    # 本番モードの場合のみ署名と公証を実行
+    if [ "$PRODUCTION_MODE" = true ]; then
+        if ! notarize_package "$package_path" \
+            "com.noproblem.codest" \
+            "$APPLE_ID" \
+            "$APPLE_ID_PASS" \
+            "$TEAM_ID"; then
+            echo "エラー: パッケージの公証に失敗しました"
+            exit 1
+        fi
+
+        if ! attach_notarization_ticket "$package_path"; then
+            echo "エラー: 公証チケットの添付に失敗しました"
+            exit 1
+        fi
+    fi
+
+    # 後処理
+    cleanup_build
+
+    # 実行時間の計算と表示
+    local end_time
+    end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+
+    echo "インストーラービルドが正常に完了しました"
+    echo "所要時間: $duration 秒"
+    echo "作成されたパッケージ: $package_path"
+}
+
+# スクリプトの実行
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

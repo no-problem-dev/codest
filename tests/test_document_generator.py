@@ -1,5 +1,7 @@
 import fnmatch
 import logging
+
+import pyperclip
 import pytest
 import os
 from codest.document_generator import DocumentGenerator
@@ -57,3 +59,19 @@ class GitIgnoreHandler:
                 return True
 
         return False
+
+
+def test_generate_to_clipboard(temp_project):
+    """Test generating content to clipboard"""
+    generator = DocumentGenerator(str(temp_project), max_file_size_kb=1000)
+    content, _ = generator.generate(to_clipboard=True)
+
+    # 内容の検証
+    assert '# Project Source Code Collection' in content
+    assert 'main.py' in content
+    assert 'print("Hello")' in content
+    assert '[SKIPPED]' in content and 'large_file.py' in content
+
+    # クリップボードの内容を検証
+    clipboard_content = pyperclip.paste()
+    assert clipboard_content == content

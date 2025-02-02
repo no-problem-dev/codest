@@ -1,7 +1,9 @@
 import os
+import io
 import logging
+import pyperclip
 from datetime import datetime
-from typing import TextIO
+from typing import Union, TextIO, Tuple
 from .file_collector import FileCollector
 from .exceptions import DocumentGenerationError
 
@@ -27,59 +29,64 @@ class DocumentGenerator:
         self.max_file_size_kb = max_file_size_kb
         self.collector = collector or FileCollector(root_dir)
 
-    def generate(self, output_file: str = None) -> str:
+    def generate(self, output_file: str = None, to_clipboard: bool = False) -> Union[str, Tuple[str, str]]:
         """
         ソースコードドキュメントを生成
 
         Args:
             output_file (str, optional): 出力ファイルパス
+            to_clipboard (bool, optional): クリップボードにコピーするかどうか
 
         Returns:
-            str: 生成されたファイルのパス
+            Union[str, Tuple[str, str]]:
+                to_clipboard=Falseの場合: 生成されたファイルのパス
+                to_clipboard=Trueの場合: (生成された内容, ファイルパス) のタプル
 
         Raises:
             DocumentGenerationError: ドキュメント生成に失敗した場合
         """
-        if output_file is None:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_file = f'source_code_{timestamp}.txt'
-
         try:
-            logger.info(f"Output will be written to: {output_file}")
+            logger.info("Starting document generation")
             source_files = self.collector.collect_files()
 
-            with open(output_file, 'w', encoding='utf-8') as f:
-                self._write_header(f, len(source_files))
+            # メモリ上にコンテンツを生成
+            with io.StringIO() as content_buffer:
+                self._write_header(content_buffer, len(source_files))
 
                 for file_path in source_files:
-                    self._process_file(f, file_path)
+                    self._process_file(content_buffer, file_path)
 
+                content = content_buffer.getvalue()
+
+            # クリップボードにコピーする場合
+            if to_clipboard:
+                pyperclip.copy(content)
+                logger.info("Content copied to clipboard")
+                return content, output_file if output_file else None
+
+            # ファイルに出力する場合
+            if output_file is None:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                output_file = f'source_code_{timestamp}.txt'
+
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            logger.info(f"Output written to: {output_file}")
             return output_file
 
         except Exception as e:
             raise DocumentGenerationError(f"Failed to generate document: {str(e)}")
 
     def _write_header(self, file: TextIO, total_files: int) -> None:
-        """
-        ドキュメントヘッダーを書き込み
-
-        Args:
-            file (TextIO): 出力ファイルオブジェクト
-            total_files (int): 処理対象のファイル総数
-        """
+        """ドキュメントヘッダーを書き込み"""
         file.write(f"# Project Source Code Collection\n")
         file.write(f"# Generated at: {datetime.now().isoformat()}\n")
         file.write(f"# Root directory: {self.root_dir}\n")
         file.write(f"# Total files found: {total_files}\n\n")
 
     def _process_file(self, output_file: TextIO, file_path: str) -> None:
-        """
-        単一ファイルを処理して書き込み
-
-        Args:
-            output_file (TextIO): 出力ファイルオブジェクト
-            file_path (str): 処理対象のファイルパス
-        """
+        """単一ファイルを処理して書き込み"""
         rel_path = os.path.relpath(file_path, self.root_dir)
         logger.debug(f"Processing file: {rel_path}")
 
@@ -94,31 +101,14 @@ class DocumentGenerator:
             self._write_error_file(output_file, rel_path, str(e))
 
     def _write_skipped_file(self, output_file: TextIO, rel_path: str, file_size_kb: float) -> None:
-        """
-        スキップされたファイル情報を書き込み
-
-        Args:
-            output_file (TextIO): 出力ファイルオブジェクト
-            rel_path (str): 対象ファイルの相対パス
-            file_size_kb (float): ファイルサイズ（KB）
-        """
+        """スキップされたファイル情報を書き込み"""
         logger.warning(f"Skipping large file: {rel_path} ({file_size_kb:.1f}KB)")
         output_file.write(f"\n### File: {rel_path}\n")
         output_file.write(
             f"# [SKIPPED] File size ({file_size_kb:.1f}KB) exceeds limit of {self.max_file_size_kb}KB\n\n")
 
     def _write_file_content(self, output_file: TextIO, file_path: str, rel_path: str) -> None:
-        """
-        ファイル内容を書き込み
-
-        Args:
-            output_file (TextIO): 出力ファイルオブジェクト
-            file_path (str): 対象ファイルの完全パス
-            rel_path (str): 対象ファイルの相対パス
-
-        Raises:
-            IOError: ファイルの読み込みに失敗した場合
-        """
+        """ファイル内容を書き込み"""
         with open(file_path, 'r', encoding='utf-8') as source_file:
             content = source_file.read()
             output_file.write(f"\n### File: {rel_path}\n")
@@ -127,14 +117,7 @@ class DocumentGenerator:
             output_file.write("\n```\n")
 
     def _write_error_file(self, output_file: TextIO, rel_path: str, error: str) -> None:
-        """
-        エラー情報を書き込み
-
-        Args:
-            output_file (TextIO): 出力ファイルオブジェクト
-            rel_path (str): 対象ファイルの相対パス
-            error (str): エラーメッセージ
-        """
+        """エラー情報を書き込み"""
         logger.error(f"Error reading file {rel_path}: {error}")
         output_file.write(f"\n### File: {rel_path}\n")
         output_file.write(f"# [ERROR] Failed to read file: {error}\n\n")

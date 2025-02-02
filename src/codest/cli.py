@@ -4,6 +4,8 @@ import logging
 from .document_generator import DocumentGenerator
 from .exceptions import CodestError
 
+logger = logging.getLogger(__name__)
+
 
 def setup_logging(verbose: bool) -> None:
     """Set up logging configuration"""
@@ -40,6 +42,11 @@ def create_parser() -> argparse.ArgumentParser:
         action='store_true',
         help='Enable verbose output'
     )
+    parser.add_argument(
+        '-c', '--clipboard',
+        action='store_true',
+        help='Copy output to clipboard instead of creating a file'
+    )
     return parser
 
 
@@ -58,8 +65,14 @@ def main() -> int:
 
     try:
         generator = DocumentGenerator(args.root_dir, args.max_size)
-        output_file = generator.generate(args.output)
-        logger.info(f"Source code collection completed successfully: {output_file}")
+
+        if args.clipboard:
+            content, _ = generator.generate(to_clipboard=True)
+            logger.info("Source code collection copied to clipboard")
+        else:
+            output_file = generator.generate(args.output)
+            logger.info(f"Source code collection completed successfully: {output_file}")
+
         return 0
 
     except CodestError as e:
