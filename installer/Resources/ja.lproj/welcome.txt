@@ -1,0 +1,5 @@
+# installer/Resources/ja.lproj/welcome.txt
+Codest インストーラーへようこそ。
+
+このパッケージはCodestをシステムにインストールします。
+インストールには管理者権限が必要です。

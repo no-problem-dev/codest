@@ -1,8 +1,21 @@
 #!/bin/bash
-echo "Preparing for installation..."
 
-# Python 3がインストールされているか確認
-if ! command -v python3 &> /dev/null; then
-    echo "Python 3 is not installed. Please install Python 3 first."
-    exit 1
+echo "インストール前の処理を開始します..."
+
+# 古いバージョンが存在する場合は削除
+if [ -d "/usr/local/lib/codest" ]; then
+    echo "既存のインストールを削除しています..."
+    rm -rf /usr/local/lib/codest
 fi
+
+if [ -f "/usr/local/bin/codest" ]; then
+    echo "既存の実行ファイルを削除しています..."
+    rm -f /usr/local/bin/codest
+fi
+
+# インストールディレクトリの作成
+echo "インストールディレクトリを準備しています..."
+mkdir -p /usr/local/lib/codest
+mkdir -p /usr/local/bin
+
+exit 0
