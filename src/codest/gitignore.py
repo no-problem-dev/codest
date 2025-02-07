@@ -65,24 +65,30 @@ class GitIgnoreHandler:
         path_parts = rel_path.split(os.sep)
 
         for pattern in self.patterns:
-            # ディレクトリパターン（末尾が/）の処理
+            pattern = pattern.strip()
+            if not pattern:
+                continue
+
+            # ディレクトリパターンの処理
             if pattern.endswith('/'):
-                pattern_name = pattern.rstrip('/')
-                # パスの各部分でマッチをチェック
-                for part in path_parts:
-                    if fnmatch.fnmatch(part, pattern_name):
-                        return True
+                pattern = pattern.rstrip('/')
+                if pattern in path_parts:
+                    logger.debug(f"Ignoring directory due to pattern '{pattern}/': {path}")
+                    return True
+                # ディレクトリの完全パスマッチ
+                if fnmatch.fnmatch(rel_path, f"{pattern}/*"):
+                    logger.debug(f"Ignoring path due to directory pattern '{pattern}/': {path}")
+                    return True
+
+            # ファイルパターンの処理
             else:
-                # ファイルパターンの処理
-                # 1. 完全パスでのマッチ
+                # 完全パスマッチ
                 if fnmatch.fnmatch(rel_path, pattern):
+                    logger.debug(f"Ignoring file due to pattern '{pattern}': {path}")
                     return True
-                # 2. ベースネームでのマッチ（ディレクトリを含まないパターン）
-                if '/' not in pattern and fnmatch.fnmatch(os.path.basename(path), pattern):
+                # ベースネームマッチ（パスの各部分をチェック）
+                if any(fnmatch.fnmatch(part, pattern) for part in path_parts):
+                    logger.debug(f"Ignoring file due to basename pattern '{pattern}': {path}")
                     return True
-                # 3. パスの一部としてのマッチ
-                for part in path_parts:
-                    if fnmatch.fnmatch(part, pattern):
-                        return True
 
         return False

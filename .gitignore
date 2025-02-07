@@ -50,14 +50,14 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-test_output.txt
+test_*.md
 
 # Documentation
 docs/_build/
 site/
 
 # Project specific
-source_code_*.txt
+source_code_*.md
 _version.py
 
 # Logs
