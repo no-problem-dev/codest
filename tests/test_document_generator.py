@@ -10,10 +10,13 @@ def temp_project(tmp_path):
     src_dir = tmp_path / 'src'
     src_dir.mkdir()
 
-    # main.pyの作成
+    # Python ファイルの作成
     (src_dir / 'main.py').write_text('print("Hello")')
 
-    # large_file.pyの作成（2MB）
+    # マークダウンファイルの作成
+    (src_dir / 'README.md').write_text('# Test Project\n\n```python\nprint("test")\n```')
+
+    # 大きなファイルの作成（2MB）
     (src_dir / 'large_file.py').write_text('x' * (2 * 1024 * 1024))
 
     # テストファイルの作成
@@ -30,22 +33,29 @@ def test_generate_document(temp_project):
         directories=[str(temp_project)],
         max_file_size_kb=1000
     )
-    output_file = generator.generate('test_output.txt')
+    output_file = generator.generate('test_output.md')
 
     # 出力ファイルの存在確認
     assert os.path.exists(output_file)
+    assert output_file.endswith('.md')
 
     # 出力内容の検証
     with open(output_file, 'r', encoding='utf-8') as f:
         content = f.read()
         # ヘッダーの確認
-        assert '# Project Source Code Collection' in content
-        # ファイル内容の確認
-        assert 'main.py' in content
+        assert '# Source Code Collection' in content
+        assert '## Meta Information' in content
+        assert '## Target Directories' in content
+        # Python ファイルの確認
+        assert 'src/main.py' in content
+        assert '```python' in content
         assert 'print("Hello")' in content
+        # マークダウンファイルの確認
+        assert 'src/README.md' in content
+        assert '<details>' in content
         # 大きなファイルがスキップされていることの確認
-        assert '[SKIPPED]' in content
         assert 'large_file.py' in content
+        assert '⚠️ **File skipped**' in content
 
 
 def test_generate_to_clipboard(temp_project):
@@ -57,11 +67,10 @@ def test_generate_to_clipboard(temp_project):
     content, _ = generator.generate(to_clipboard=True)
 
     # 生成された内容の検証
-    assert '# Project Source Code Collection' in content
-    assert 'main.py' in content
+    assert '# Source Code Collection' in content
+    assert '```python' in content
     assert 'print("Hello")' in content
-    assert '[SKIPPED]' in content
-    assert 'large_file.py' in content
+    assert '<details>' in content  # マークダウンファイルの処理を確認
 
     # クリップボードの内容を検証
     clipboard_content = pyperclip.paste()
@@ -77,13 +86,16 @@ def test_generate_with_multiple_directories(temp_project):
         directories=[src_dir, test_dir],
         max_file_size_kb=1000
     )
-    output_file = generator.generate('test_multiple.txt')
+    output_file = generator.generate('test_multiple.md')
 
     with open(output_file, 'r', encoding='utf-8') as f:
         content = f.read()
         # 両方のディレクトリのファイルが含まれていることを確認
         assert 'main.py' in content
         assert 'test_main.py' in content
+        # ターゲットディレクトリの確認
+        assert f'`{src_dir}`' in content
+        assert f'`{test_dir}`' in content
 
 
 def test_generate_with_excluded_directory(temp_project):
@@ -95,12 +107,12 @@ def test_generate_with_excluded_directory(temp_project):
         exclude_dirs=[test_dir],
         max_file_size_kb=1000
     )
-    output_file = generator.generate('test_exclude.txt')
+    output_file = generator.generate('test_exclude.md')
 
     with open(output_file, 'r', encoding='utf-8') as f:
         content = f.read()
         # メインのソースファイルは含まれている
-        assert 'main.py' in content
+        assert 'src/main.py' in content
         # テストファイルは除外されている
         assert 'test_main.py' not in content
 
@@ -111,13 +123,16 @@ def test_generate_with_max_size_zero(temp_project):
         directories=[str(temp_project)],
         max_file_size_kb=0
     )
-    output_file = generator.generate('test_size_zero.txt')
+    output_file = generator.generate('test_size_zero.md')
 
     with open(output_file, 'r', encoding='utf-8') as f:
         content = f.read()
-        assert '[SKIPPED]' in content
-        assert all(f'[SKIPPED]' in line for line in content.split('\n')
-                   if 'File:' in line and not line.startswith('#'))
+        # すべてのファイルセクションにスキップメッセージが含まれていることを確認
+        sections = [s for s in content.split('### `') if s.strip()]
+        assert len(sections) > 0
+        for section in sections:
+            if not section.startswith('#'):  # ヘッダーセクションをスキップ
+                assert '⚠️ **File skipped**' in section
 
 
 def test_generate_empty_directory(tmp_path):
@@ -126,8 +141,9 @@ def test_generate_empty_directory(tmp_path):
         directories=[str(tmp_path)],
         max_file_size_kb=1000
     )
-    output_file = generator.generate('test_empty.txt')
+    output_file = generator.generate('test_empty.md')
 
     with open(output_file, 'r', encoding='utf-8') as f:
         content = f.read()
-        assert '# Total files found: 0' in content
+        assert '# Source Code Collection' in content
+        assert '**Total files**: 0' in content
