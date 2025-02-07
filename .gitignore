@@ -50,7 +50,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-test_output.txt
+test_*.txt
 
 # Documentation
 docs/_build/

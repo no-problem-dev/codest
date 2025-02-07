@@ -1,6 +1,8 @@
 import argparse
 import sys
 import logging
+
+from src.codest.normalize_paths import normalize_paths, is_subdirectory
 from .document_generator import DocumentGenerator
 from .exceptions import CodestError
 
@@ -22,10 +24,16 @@ def create_parser() -> argparse.ArgumentParser:
         description='Collect source code files into a single document'
     )
     parser.add_argument(
-        'root_dir',
-        help='Root directory to scan for source files',
-        nargs='?',
-        default='.'
+        'directories',
+        help='Directories to scan for source files',
+        nargs='+',  # 1つ以上のディレクトリを受け付ける
+        default=['.']
+    )
+    parser.add_argument(
+        '--exclude',
+        help='Directories to exclude from scanning',
+        nargs='*',
+        default=[]
     )
     parser.add_argument(
         '-o', '--output',
@@ -53,9 +61,6 @@ def create_parser() -> argparse.ArgumentParser:
 def main() -> int:
     """
     Main entry point for the CLI
-
-    Returns:
-        int: Exit code (0 for success, 1 for error)
     """
     parser = create_parser()
     args = parser.parse_args()
@@ -64,7 +69,24 @@ def main() -> int:
     logger = logging.getLogger(__name__)
 
     try:
-        generator = DocumentGenerator(args.root_dir, args.max_size)
+        # パスの正規化と重複排除
+        directories = normalize_paths(args.directories)
+        exclude_dirs = normalize_paths(args.exclude)
+
+        logger.debug(f"Normalized directories to scan: {directories}")
+        if exclude_dirs:
+            logger.debug(f"Normalized directories to exclude: {exclude_dirs}")
+
+        # 除外ディレクトリが指定されたディレクトリのサブディレクトリであることを確認
+        for exclude_dir in exclude_dirs:
+            if not any(is_subdirectory(d, exclude_dir) for d in directories):
+                logger.warning(f"Excluded directory '{exclude_dir}' is not a subdirectory of any specified directories")
+
+        generator = DocumentGenerator(
+            directories=directories,
+            exclude_dirs=exclude_dirs,
+            max_file_size_kb=args.max_size
+        )
 
         if args.clipboard:
             content, _ = generator.generate(to_clipboard=True)
