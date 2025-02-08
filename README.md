@@ -1,24 +1,60 @@
 # Codest
 
-プロジェクトのソースコードを1つのマークダウンドキュメントにまとめるツール。
+<div align="center">
 
-## インストール方法
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub release](https://img.shields.io/github/v/release/no-problem-dev/codest)](https://github.com/no-problem-dev/codest/releases)
+[![GitHub issues](https://img.shields.io/github/issues/no-problem-dev/codest)](https://github.com/no-problem-dev/codest/issues)
 
-1. [Releases](https://github.com/no-problem-dev/codest/releases) から最新の`codest-x.x.x.pkg`をダウンロード
+</div>
+
+プロジェクトのソースコードを1つのマークダウンドキュメントにまとめるツール。AI解析やドキュメント生成のための前処理として、またはプロジェクト全体の把握に役立ちます。
+
+## 🌟 主な特徴
+
+- **スマートな収集機能**
+  - 複数のディレクトリから同時収集
+  - `.gitignore`の設定を自動反映
+  - 柔軟なファイル除外オプション
+  - 相対パスと絶対パスの混在をサポート
+
+- **最適化された出力**
+  - シンタックスハイライト付きのコードブロック
+  - 折りたたみ可能なマークダウンコンテンツ
+  - GitHubと完全互換の表示形式
+  - 大きなファイルの自動スキップ
+
+- **使いやすい設計**
+  - シンプルなコマンドライン操作
+  - ファイル出力とクリップボードコピーの選択
+  - カスタマイズ可能なサイズ制限
+  - 豊富なログオプション
+
+## 🚀 インストール方法
+
+### macOSの場合
+
+1. [Releases](https://github.com/no-problem-dev/codest/releases)から最新の`codest-x.x.x.pkg`をダウンロード
 2. ダウンロードしたpkgファイルをダブルクリック
 3. インストーラーの指示に従ってインストール
 4. ターミナルを再起動
 
-## 使い方
+### その他の環境（Pythonパッケージとして）
 
-### 基本的な使用方法
+```bash
+pip install git+https://github.com/no-problem-dev/codest.git
+```
+
+## 💡 使用例
+
+### 基本的な使い方
 
 ```bash
 # カレントディレクトリのコードをまとめる
 codest .
 
 # 出力ファイルを指定
-codest . -o output.md
+codest . -o project_source.md
 
 # クリップボードにコピー
 codest . -c
@@ -30,112 +66,79 @@ codest . --max-size 2000
 codest . -v
 ```
 
-### 複数のディレクトリを指定
-
-複数のディレクトリからソースコードを収集できます：
+### 高度な使用例
 
 ```bash
 # 複数のディレクトリを指定
 codest src tests docs
 
-# カレントディレクトリと特定のディレクトリを組み合わせ
-codest . src/frontend tests
-
-# 相対パスと絶対パスの混在も可能
-codest . ~/projects/shared-lib /opt/local/include
-```
-
-### 除外ディレクトリの指定
-
-特定のディレクトリを収集対象から除外できます：
-
-```bash
 # 特定のディレクトリを除外
 codest . --exclude build node_modules
 
-# 複数のディレクトリの指定と除外を組み合わせ
-codest src tests --exclude src/generated tests/fixtures
+# カレントディレクトリと特定のディレクトリを組み合わせ
+codest . src/frontend tests
+
+# 相対パスと絶対パスの混在
+codest . ~/projects/shared-lib /opt/local/include
 ```
 
-## 出力形式
+## 📄 出力形式
 
-以下のような構造のマークダウンファイルが生成されます：
+生成されるドキュメントは、以下の階層構造で整理されます：
 
-- トップレベルヘッダー: "Source Code Collection"
-- メタ情報セクション
-  - 生成日時
-  - 処理されたファイル数
-- ターゲットディレクトリのリスト
-- 各ソースファイルのセクション
-  - ファイルパスがヘッダーとして表示
-  - 言語に応じたシンタックスハイライト
-  - マークダウンファイルは折りたたみ表示
+| セクション | 説明 | 表示内容 |
+|------------|------|----------|
+| Source Code Collection | トップレベルヘッダー | プロジェクト全体のタイトル |
+| Meta Information | 生成情報 | 生成日時、処理ファイル数 |
+| Target Directories | 対象ディレクトリ | 収集元ディレクトリのリスト |
+| Source Files | ソースコード | 各ファイルの内容（シンタックスハイライト付き） |
 
-例：通常のソースファイル
+### 特記事項
 
-```python
-def main():
-    print("Hello World")
-```
+- 各ソースファイルは言語に応じたシンタックスハイライトが適用されます
+- マークダウンファイルは折りたたみ可能な形式で表示されます
+- ファイルサイズ制限を超えるファイルは自動的にスキップされ、警告が表示されます
+- 相対パスでファイル名が表示され、ディレクトリ構造が把握しやすくなっています
 
-例：マークダウンファイル
+## 🔧 サポートされるファイル形式
 
-<details>
-<summary>Markdown content (click to expand)</summary>
+### プログラミング言語
+- **汎用言語**: Python, JavaScript, TypeScript, Ruby, Java, C/C++, Go, Rust
+- **iOS/Mac開発**: Swift, Objective-C
+- **Webフロントエンド**: HTML, CSS, SCSS, JSX, TSX
+- **その他**: SQL, Shell Script, R, Kotlin, Lua
 
-```markdown
-# Project Overview
-...
-```
+### 設定・ドキュメント
+- **設定ファイル**: JSON, YAML, TOML, INI
+- **ドキュメント**: Markdown, Tex, XML
+- **Apple固有**: .strings, .stringsdict, .entitlements, .xcconfig, .plist
 
-Rendered markdown:
-# Project Overview
-...
+## 🤝 コントリビューション
 
-</details>
+1. このリポジトリをフォーク
+2. 新しいブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add amazing feature'`)
+4. ブランチをプッシュ (`git push origin feature/amazing-feature`)
+5. Pull Requestを作成
 
-例：スキップされたファイル
-```
-⚠️ **File skipped**: Size (2048.0KB) exceeds limit of 1000KB
-```
+## 📝 今後の予定
 
-## 特徴
+- [ ] AIツール分析用の出力最適化
+  - GPT対応のコンテキストウィンドウに最適化された出力形式
+  - ファイルサイズとトークン数の効率的な制御
+  - メタデータの強化と構造化
 
-- マークダウン形式での出力
-  - シンタックスハイライト付きのコードブロック
-  - 折りたたみ可能なマークダウンコンテンツ
-  - GitHubと互換性のある表示形式
-- 複数のディレクトリをサポート
-  - 複数のソースディレクトリの同時処理
-  - 除外ディレクトリの指定
-  - 相対パスと絶対パスの混在をサポート
-- スマートなパス処理
-  - 最適な相対パス表示
-  - 重複パスの自動排除
-  - ディレクトリ階層の明確な表示
-- プロジェクト設定の考慮
-  - .gitignoreの設定を反映
-  - 大きなファイルの自動スキップ
-  - 多様なプログラミング言語をサポート
-- 柔軟な出力オプション
-  - ファイルへの出力
-  - クリップボードへのコピー
-  - カスタマイズ可能なファイルサイズ制限
+## 💬 サポート
 
-## サポートされるファイル形式
+- 問題報告や機能リクエストは[Issues](https://github.com/no-problem-dev/codest/issues)までお願いします
+- 使用方法の質問は[Discussions](https://github.com/no-problem-dev/codest/discussions)をご利用ください
 
-多様なファイル形式に対応し、適切なシンタックスハイライトを提供：
+## 📜 ライセンス
 
-- プログラミング言語: Python, JavaScript, TypeScript, Ruby, Java, C/C++, Go, Rust, Swift など
-- Web関連: HTML, CSS, SCSS, JavaScript, TypeScript
-- 設定ファイル: JSON, YAML, TOML, INI
-- ドキュメント: Markdown, Tex, XML
-- その他: SQL, Shell Script, Apple固有の設定ファイルなど
+このプロジェクトは[MIT License](LICENSE)のもとで公開されています。
 
-## サポート
+---
 
-問題や提案がある場合は[Issues](https://github.com/no-problem-dev/codest/issues)にお願いします。
-
-## ライセンス
-
-MIT License
+<div align="center">
+Made with ❤️ by <a href="https://github.com/no-problem-dev">NOPROBLEM DEV</a>
+</div>
