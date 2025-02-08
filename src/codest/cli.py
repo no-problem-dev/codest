@@ -2,7 +2,7 @@ import argparse
 import sys
 import logging
 
-from src.codest.normalize_paths import normalize_paths, is_subdirectory
+from .normalize_paths import normalize_paths, is_subdirectory
 from .document_generator import DocumentGenerator
 from .exceptions import CodestError
 
